@@ -41,6 +41,15 @@ def extract_session_id(text: str | None) -> str | None:
     return None
 
 
+def _drain_stderr(stderr, lines: list[str]) -> None:
+    try:
+        for line in stderr:
+            logger.info("[codex][stderr] %s", line.rstrip())
+            lines.append(line)
+    except Exception as e:
+        logger.debug("[codex][stderr] drain error: %s", e)
+
+
 def setup_logging(log_file: str | None) -> None:
     logger.setLevel(logging.DEBUG)
     logger.handlers.clear()
@@ -250,13 +259,7 @@ class CodexExecRunner:
         proc.stdin.close()
 
         stderr_lines: list[str] = []
-
-        def _drain_stderr() -> None:
-            for line in proc.stderr:
-                logger.info("[codex][stderr] %s", line.rstrip())
-                stderr_lines.append(line)
-
-        t = threading.Thread(target=_drain_stderr, daemon=True)
+        t = threading.Thread(target=_drain_stderr, args=(proc.stderr, stderr_lines), daemon=True)
         t.start()
 
         found_session: str | None = session_id
