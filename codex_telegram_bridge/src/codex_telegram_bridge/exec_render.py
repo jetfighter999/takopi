@@ -346,12 +346,7 @@ class ExecProgressRenderer:
         message = self._assemble(header, lines)
         if len(message) <= self.max_chars:
             return message
-
-        while len(message) > self.max_chars and lines:
-            lines.pop(0)
-            message = self._assemble(header, lines)
-
-        return message
+        return header
 
     def render_final(self, elapsed_s: float, answer: str, status: str = "done") -> str:
         header = _format_header(elapsed_s, self.state.last_turn, label=status)
