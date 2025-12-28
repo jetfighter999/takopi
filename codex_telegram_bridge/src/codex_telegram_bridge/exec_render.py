@@ -130,7 +130,7 @@ def _maybe_parse_json(text: str) -> Optional[Any]:
 @dataclass
 class ExecRenderState:
     items: dict[str, dict[str, Any]] = field(default_factory=dict)
-    recent_entries: deque[tuple[str, str]] = field(default_factory=lambda: deque(maxlen=12))
+    recent_actions: deque[str] = field(default_factory=lambda: deque(maxlen=5))
     current_action: Optional[str] = None
     current_action_id: Optional[int] = None
     pending_reasoning: Optional[str] = None
@@ -162,11 +162,11 @@ def _set_current_action(state: ExecRenderState, item_id: Optional[int], line: st
 def _complete_action(state: ExecRenderState, item_id: Optional[int], line: str) -> bool:
     changed = False
     if state.current_reasoning:
-        if not state.recent_entries or state.recent_entries[-1][1] != state.current_reasoning:
-            state.recent_entries.append(("reasoning", state.current_reasoning))
+        if not state.recent_actions or state.recent_actions[-1] != state.current_reasoning:
+            state.recent_actions.append(state.current_reasoning)
             changed = True
     if line:
-        state.recent_entries.append(("action", line))
+        state.recent_actions.append(line)
         changed = True
     if item_id and state.current_action_id == item_id:
         state.current_action = None
@@ -264,7 +264,7 @@ def render_event_cli(
 class ExecProgressRenderer:
     def __init__(self, max_actions: int = 5, max_chars: int = MAX_PROGRESS_CHARS) -> None:
         self.max_actions = max_actions
-        self.state = ExecRenderState(recent_entries=deque(maxlen=max_actions * 2 + 4))
+        self.state = ExecRenderState(recent_actions=deque(maxlen=max_actions))
         self.max_chars = max_chars
 
     def note_event(self, event: dict[str, Any]) -> bool:
@@ -333,9 +333,7 @@ class ExecProgressRenderer:
         header = _format_header(elapsed_s, self.state.last_turn, label="working")
         current_reasoning = self.state.current_reasoning
         current_action = self.state.current_action
-        action_limit = self.max_actions
-
-        lines = self._history_lines(action_limit)
+        lines = list(self.state.recent_actions)
         if current_reasoning and current_action:
             lines.append(current_reasoning)
         if current_action:
@@ -345,9 +343,8 @@ class ExecProgressRenderer:
         if len(message) <= self.max_chars:
             return message
 
-        while len(message) > self.max_chars and action_limit > 0:
-            action_limit -= 1
-            lines = self._history_lines(action_limit)
+        while len(message) > self.max_chars and lines:
+            lines.pop(0)
             if current_reasoning and current_action:
                 lines.append(current_reasoning)
             if current_action:
@@ -358,30 +355,11 @@ class ExecProgressRenderer:
 
     def render_final(self, elapsed_s: float, answer: str, status: str = "done") -> str:
         header = _format_header(elapsed_s, self.state.last_turn, label=status)
-        body = self._assemble(header, self._history_lines(self.max_actions))
+        body = self._assemble(header, list(self.state.recent_actions))
         answer = (answer or "").strip()
         if answer:
             body = body + "\n\n" + answer
         return body
-
-    def _history_lines(self, max_actions: int) -> list[str]:
-        if max_actions <= 0 or not self.state.recent_entries:
-            return []
-        selected: set[int] = set()
-        action_count = 0
-        entries = list(self.state.recent_entries)
-        i = len(entries) - 1
-        while i >= 0 and action_count < max_actions:
-            kind, _line = entries[i]
-            if kind == "action":
-                selected.add(i)
-                action_count += 1
-                if i - 1 >= 0 and entries[i - 1][0] == "reasoning":
-                    selected.add(i - 1)
-                i -= 1
-                continue
-            i -= 1
-        return [line for idx, (_kind, line) in enumerate(entries) if idx in selected]
 
     @staticmethod
     def _assemble(header: str, lines: list[str]) -> str:
