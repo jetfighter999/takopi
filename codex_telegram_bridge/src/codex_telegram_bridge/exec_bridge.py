@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shlex
 import subprocess
 import threading
@@ -21,7 +22,6 @@ from .config import load_telegram_config
 from .constants import TELEGRAM_HARD_LIMIT
 from .exec_render import ExecProgressRenderer, ExecRenderState, render_event_cli
 from .rendering import render_markdown
-from .routes import RouteStore
 from .telegram_client import TelegramClient
 
 # -------------------- Codex runner --------------------
@@ -343,7 +343,6 @@ def run(
     setup_file_logger(log_file if log_file else None)
     config = load_telegram_config()
     token = config["bot_token"]
-    db_path = config.get("bridge_db", "./bridge_routes.sqlite3")
 
     def _as_int_set(value: Any) -> set[int]:
         if isinstance(value, int):
@@ -389,7 +388,6 @@ def run(
         extra_args.extend(["-c", "notify=[]"])
 
     bot = TelegramClient(token)
-    store = RouteStore(db_path)
     runner = CodexExecRunner(codex_cmd=codex_cmd, workspace=workspace, extra_args=extra_args)
 
     max_workers = config.get("max_workers")
@@ -484,14 +482,6 @@ def run(
                 thread_id = evt.get("thread_id")
                 if isinstance(thread_id, str) and thread_id:
                     session_box["id"] = thread_id
-                    if progress_id is not None:
-                        store.link(
-                            chat_id,
-                            progress_id,
-                            "exec",
-                            thread_id,
-                            meta={"workspace": workspace},
-                        )
             if progress_renderer.note_event(evt) and progress is not None:
                 elapsed = time.monotonic() - started_at
                 msg = progress_renderer.render_progress(elapsed)
@@ -515,11 +505,9 @@ def run(
         except Exception as e:
             _stop_background()
             err = _clamp_tg_text(f"Error:\n{e}")
-            route_id = session_box["id"] or resume_session or "unknown"
             if progress_id is not None and len(err) <= TELEGRAM_TEXT_LIMIT:
                 try:
                     bot.edit_message_text(chat_id=chat_id, message_id=progress_id, text=err)
-                    store.link(chat_id, progress_id, "exec", route_id, meta={"error": True})
                     log(
                         "[handle] error "
                         f"chat_id={chat_id} user_msg_id={user_msg_id} "
@@ -534,8 +522,6 @@ def run(
                 text=err,
                 reply_to_message_id=user_msg_id,
             )
-            for m in sent_msgs:
-                store.link(chat_id, m["message_id"], "exec", route_id, meta={"error": True})
             log(
                 "[handle] error "
                 f"chat_id={chat_id} user_msg_id={user_msg_id} resume_session={resume_session!r} err={e}"
@@ -549,6 +535,7 @@ def run(
         elapsed = time.monotonic() - started_at
         status = "done" if saw_agent_message else "error"
         final_md = progress_renderer.render_final(elapsed, answer, status=status)
+        final_md = final_md + f"\n\nresume: `{session_id}`"
         final_text, final_entities = render_markdown(final_md)
         can_edit_final = progress_id is not None and len(final_text) <= TELEGRAM_TEXT_LIMIT
 
@@ -558,8 +545,6 @@ def run(
                 text=final_md,
                 reply_to_message_id=user_msg_id,
             )
-            for m in sent_msgs:
-                store.link(chat_id, m["message_id"], "exec", session_id, meta={"workspace": workspace})
             if progress_id is not None:
                 try:
                     bot.delete_message(chat_id=chat_id, message_id=progress_id)
@@ -575,7 +560,6 @@ def run(
                 text=final_text,
                 entities=final_entities or None,
             )
-            store.link(chat_id, progress_id, "exec", session_id, meta={"workspace": workspace})
 
         log(
             "[handle] done "
@@ -632,22 +616,19 @@ def run(
                 f"chat_id={chat_id} user_msg_id={user_msg_id} text={_one_line(text)}"
             )
 
-            # If user replied to a bot message, route to that session
-            resume_session: Optional[str] = None
-            r = msg.get("reply_to_message")
-            if r and "message_id" in r:
-                route = store.resolve(chat_id, r["message_id"])
-                if route and route.route_type == "exec":
-                    resume_session = route.route_id
-                    log(
-                        "[telegram] resolved reply route "
-                        f"chat_id={chat_id} bot_message_id={r['message_id']} session_id={resume_session!r}"
-                    )
-                else:
-                    log(
-                        "[telegram] reply has no exec route "
-                        f"chat_id={chat_id} bot_message_id={r['message_id']}"
-                    )
+            uuid_re = re.compile(
+                r"(?i)\\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\b"
+            )
+
+            def _extract_session_id(value: Optional[str]) -> Optional[str]:
+                if not value:
+                    return None
+                m = uuid_re.search(value)
+                return m.group(0) if m else None
+
+            resume_session = _extract_session_id(text)
+            r = msg.get("reply_to_message") or {}
+            resume_session = resume_session or _extract_session_id(r.get("text"))
 
             pool.submit(handle, chat_id, user_msg_id, text, resume_session)
 

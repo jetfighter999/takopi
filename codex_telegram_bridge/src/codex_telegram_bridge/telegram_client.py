@@ -116,23 +116,14 @@ class TelegramClient:
         rendered_text, entities = render_markdown(text)
         limit = min(chunk_len, TELEGRAM_HARD_LIMIT)
         if len(rendered_text) > limit:
-            suffix = "\n" + ELLIPSIS
-            keep = max(0, limit - len(suffix))
-            rendered_text = rendered_text[:keep] + suffix
-            if entities:
-                trimmed: List[Dict[str, Any]] = []
-                for ent in entities:
-                    start = int(ent["offset"])
-                    length = int(ent["length"])
-                    if start >= keep:
-                        continue
-                    end = min(start + length, keep)
-                    if end <= start:
-                        continue
-                    d = dict(ent)
-                    d["length"] = end - start
-                    trimmed.append(d)
-                entities = trimmed
+            # Keep a tail section to preserve the "resume: `...`" line at the end.
+            # If we truncate, drop entities to avoid offset gymnastics.
+            sep = "\n" + ELLIPSIS + "\n"
+            tail_len = min(400, max(120, limit // 3))
+            tail = rendered_text[-tail_len:]
+            head_len = max(0, limit - len(sep) - len(tail))
+            rendered_text = rendered_text[:head_len] + sep + tail
+            entities = None
 
         msg = self.send_message(
             chat_id=chat_id,

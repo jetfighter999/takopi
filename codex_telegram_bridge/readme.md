@@ -23,7 +23,7 @@ chat_id = 123456789
 
 Optional keys:
 
-- common: `bridge_db`, `allowed_chat_ids`, `startup_chat_ids`
+- common: `allowed_chat_ids`, `startup_chat_ids`
 - exec/resume: `startup_message`, `codex_cmd`, `codex_workspace`, `codex_exec_args`, `max_workers`, `codex_io_mode`, `codex_command_timeout_s`, `codex_no_child_timeout_s`
 
 ## Option 1: exec/resume
@@ -46,11 +46,14 @@ Optional flags:
 - `--workdir PATH` (override `codex_workspace`)
 - `--model NAME` (pass through to `codex exec`)
 
+To resume an existing thread without a database, reply with (or include) the session id shown at the end of the bot response:
+
+`resume: \`019b66fc-64c2-7a71-81cd-081c504cfeb2\``
+
 ## Files
 - `src/codex_telegram_bridge/constants.py`: limits and config path constants
 - `src/codex_telegram_bridge/config.py`: config loading and chat-id parsing helpers
 - `src/codex_telegram_bridge/exec_render.py`: renderers for codex exec JSONL events
 - `src/codex_telegram_bridge/rendering.py`: markdown rendering
-- `src/codex_telegram_bridge/routes.py`: sqlite routing store
 - `src/codex_telegram_bridge/telegram_client.py`: Telegram Bot API client
 - `src/codex_telegram_bridge/exec_bridge.py`: codex exec + resume bridge
