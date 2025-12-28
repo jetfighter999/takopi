@@ -12,31 +12,29 @@ All options store a mapping from `(chat_id, bot_message_id)` to a route so repli
 
 1. Ensure `uv` is installed.
 2. Use the scripts in this folder as-is (no extra dependencies).
-3. Set `TELEGRAM_BOT_TOKEN` and (optionally) `ALLOWED_CHAT_IDS`, or put them in `~/.codex/telegram.toml`.
+3. Put your Telegram credentials in `~/.codex/telegram.toml`.
 
 Example `~/.codex/telegram.toml`:
 
 ```toml
 bot_token = "123:abc"
-allowed_chat_ids = [123456789]
-startup_chat_ids = [123456789]
-startup_message = "✅ exec_bridge started (codex exec)."
+chat_id = 123456789
 ```
 
-Environment variables always override the TOML file.
+For Python < 3.11, install `tomli` to read TOML. `chat_id` is used both for allowed messages
+and startup notifications.
+
+Optional keys (by mode):
+
+- common: `bridge_db`, `allowed_chat_ids`, `startup_chat_ids`
+- exec/resume: `startup_message`, `codex_cmd`, `codex_workspace`, `codex_exec_args`, `max_workers`
+- MCP server: `codex_mcp_cmd`, `codex_workspace`, `codex_sandbox`, `codex_approval_policy`
 
 ## Option 1: exec/resume
 
 Run:
 
 ```bash
-export TELEGRAM_BOT_TOKEN="123:abc"
-export BRIDGE_DB="./bridge_routes.sqlite3"
-export CODEX_CMD="codex"
-export CODEX_WORKSPACE="/path/to/repo"
-export CODEX_EXEC_ARGS="--full-auto"
-export STARTUP_CHAT_IDS="123456789"  # optional; defaults to ALLOWED_CHAT_IDS if set
-export STARTUP_MESSAGE="✅ exec_bridge started (codex exec)."  # optional; PWD is appended
 uv run exec_bridge.py
 ```
 
@@ -45,12 +43,6 @@ uv run exec_bridge.py
 Run:
 
 ```bash
-export TELEGRAM_BOT_TOKEN="123:abc"
-export BRIDGE_DB="./bridge_routes.sqlite3"
-export CODEX_MCP_CMD="codex mcp-server"
-export CODEX_WORKSPACE="/path/to/repo"
-export CODEX_SANDBOX="workspace-write"
-export CODEX_APPROVAL_POLICY="never"
 uv run mcp_bridge.py
 ```
 
@@ -59,17 +51,16 @@ uv run mcp_bridge.py
 Reply injector:
 
 ```bash
-export TELEGRAM_BOT_TOKEN="123:abc"
-export BRIDGE_DB="./bridge_routes.sqlite3"
-export ALLOWED_CHAT_IDS="123456789"
 uv run tmux_reply_bot.py
 ```
 
 Notifier (call from your existing hook):
 
 ```bash
-uv run tmux_notify.py --chat-id "$CHAT_ID" --tmux-target "codex1:0.0" --text "$TURN_TEXT"
+uv run tmux_notify.py --tmux-target "codex1:0.0" --text "$TURN_TEXT"
 ```
+
+Add `--chat-id` if `chat_id` is not set in `~/.codex/telegram.toml`.
 
 ## Files
 

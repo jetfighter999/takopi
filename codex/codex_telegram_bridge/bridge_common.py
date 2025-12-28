@@ -87,9 +87,6 @@ def chunk_text(text: str, limit: int = DEFAULT_CHUNK_LEN) -> List[str]:
 class TelegramClient:
     """
     Minimal Telegram Bot API client using standard library (no requests dependency).
-
-    Env:
-      TELEGRAM_BOT_TOKEN
     """
 
     def __init__(self, token: str, timeout_s: int = 120) -> None:
@@ -255,11 +252,11 @@ class RouteStore:
         self._conn.close()
 
 
-def parse_allowed_chat_ids(env_value: str) -> Optional[set[int]]:
+def parse_allowed_chat_ids(value: str) -> Optional[set[int]]:
     """
-    Parse ALLOWED_CHAT_IDS="123,456"
+    Parse a comma-separated chat id string like "123,456".
     """
-    v = (env_value or "").strip()
+    v = (value or "").strip()
     if not v:
         return None
     out: set[int] = set()
@@ -291,3 +288,12 @@ def parse_chat_id_list(value: Any) -> Optional[set[int]]:
                 out.add(int(item))
         return out or None
     return None
+
+
+def resolve_chat_ids(config: Dict[str, Any]) -> Optional[set[int]]:
+    chat_ids = parse_chat_id_list(config_get(config, "chat_id"))
+    if chat_ids is None:
+        chat_ids = parse_chat_id_list(config_get(config, "allowed_chat_ids"))
+    if chat_ids is None:
+        chat_ids = parse_chat_id_list(config_get(config, "startup_chat_ids"))
+    return chat_ids

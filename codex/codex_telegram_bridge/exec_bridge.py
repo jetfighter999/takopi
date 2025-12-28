@@ -14,8 +14,7 @@ from bridge_common import (
     RouteStore,
     config_get,
     load_telegram_config,
-    parse_allowed_chat_ids,
-    parse_chat_id_list,
+    resolve_chat_ids,
 )
 
 # -------------------- Codex runner --------------------
@@ -146,27 +145,18 @@ class CodexExecRunner:
 
 def main() -> None:
     config = load_telegram_config()
-    token = os.environ.get("TELEGRAM_BOT_TOKEN") or config_get(config, "bot_token") or ""
-    db_path = os.environ.get("BRIDGE_DB") or config_get(config, "bridge_db") or "./bridge_routes.sqlite3"
-    allowed = parse_allowed_chat_ids(os.environ.get("ALLOWED_CHAT_IDS", ""))
-    if allowed is None:
-        allowed = parse_chat_id_list(config_get(config, "allowed_chat_ids"))
-    startup_ids = parse_allowed_chat_ids(os.environ.get("STARTUP_CHAT_IDS", ""))
-    if startup_ids is None:
-        startup_ids = parse_chat_id_list(config_get(config, "startup_chat_ids"))
-    if startup_ids is None:
-        startup_ids = allowed
-    startup_msg = os.environ.get("STARTUP_MESSAGE") or config_get(
-        config, "startup_message"
-    ) or "✅ exec_bridge started (codex exec)."
+    token = config_get(config, "bot_token") or ""
+    db_path = config_get(config, "bridge_db") or "./bridge_routes.sqlite3"
+    chat_ids = resolve_chat_ids(config)
+    allowed = chat_ids
+    startup_ids = chat_ids
+    startup_msg = config_get(config, "startup_message") or "✅ exec_bridge started (codex exec)."
     startup_pwd = os.getcwd()
     startup_msg = f"{startup_msg}\nPWD: {startup_pwd}"
 
-    codex_cmd = os.environ.get("CODEX_CMD") or config_get(config, "codex_cmd") or "codex"
-    workspace = os.environ.get("CODEX_WORKSPACE") or config_get(config, "codex_workspace")
-    raw_exec_args = os.environ.get("CODEX_EXEC_ARGS")
-    if raw_exec_args is None:
-        raw_exec_args = config_get(config, "codex_exec_args") or ""
+    codex_cmd = config_get(config, "codex_cmd") or "codex"
+    workspace = config_get(config, "codex_workspace")
+    raw_exec_args = config_get(config, "codex_exec_args") or ""
     if isinstance(raw_exec_args, list):
         extra_args = [str(v) for v in raw_exec_args]
     else:
@@ -194,7 +184,12 @@ def main() -> None:
     store = RouteStore(db_path)
     runner = CodexExecRunner(codex_cmd=codex_cmd, workspace=workspace, extra_args=extra_args)
 
-    pool = ThreadPoolExecutor(max_workers=int(os.environ.get("MAX_WORKERS", "4")))
+    max_workers = config_get(config, "max_workers")
+    if isinstance(max_workers, str):
+        max_workers = int(max_workers) if max_workers.strip() else None
+    elif not isinstance(max_workers, int):
+        max_workers = None
+    pool = ThreadPoolExecutor(max_workers=max_workers or 4)
     offset: Optional[int] = None
 
     log(f"[startup] pwd={startup_pwd}")
@@ -207,7 +202,7 @@ def main() -> None:
             except Exception as e:
                 log(f"[startup] failed to send startup message to chat_id={chat_id}: {e}")
     else:
-        log("[startup] no STARTUP_CHAT_IDS or ALLOWED_CHAT_IDS set; skipping startup message")
+        log("[startup] no chat_id configured; skipping startup message")
 
     def handle(chat_id: int, user_msg_id: int, text: str, resume_session: Optional[str]) -> None:
         log(

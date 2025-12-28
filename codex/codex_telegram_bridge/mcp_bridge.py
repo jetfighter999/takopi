@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import shlex
 import subprocess
 import threading
@@ -14,8 +13,7 @@ from bridge_common import (
     RouteStore,
     config_get,
     load_telegram_config,
-    parse_allowed_chat_ids,
-    parse_chat_id_list,
+    resolve_chat_ids,
 )
 
 MCP_PROTOCOL_VERSION = "2025-06-18"
@@ -252,34 +250,22 @@ class MCPStdioClient:
 
 def main() -> None:
     config = load_telegram_config()
-    token = os.environ.get("TELEGRAM_BOT_TOKEN") or config_get(config, "bot_token") or ""
-    db_path = os.environ.get("BRIDGE_DB") or config_get(config, "bridge_db") or "./bridge_routes.sqlite3"
-    allowed = parse_allowed_chat_ids(os.environ.get("ALLOWED_CHAT_IDS", ""))
-    if allowed is None:
-        allowed = parse_chat_id_list(config_get(config, "allowed_chat_ids"))
+    token = config_get(config, "bot_token") or ""
+    db_path = config_get(config, "bridge_db") or "./bridge_routes.sqlite3"
+    allowed = resolve_chat_ids(config)
 
     # How to start Codex MCP server:
     # default: "codex mcp-server" (can also be "npx -y codex mcp-server")
-    raw_mcp_cmd = os.environ.get("CODEX_MCP_CMD")
-    if raw_mcp_cmd is None:
-        raw_mcp_cmd = config_get(config, "codex_mcp_cmd") or "codex mcp-server"
+    raw_mcp_cmd = config_get(config, "codex_mcp_cmd") or "codex mcp-server"
     if isinstance(raw_mcp_cmd, list):
         mcp_cmd = [str(v) for v in raw_mcp_cmd]
     else:
         mcp_cmd = shlex.split(str(raw_mcp_cmd))
 
     # Optional defaults for tool args (you can override as you like)
-    default_cwd = os.environ.get("CODEX_WORKSPACE") or config_get(config, "codex_workspace")
-    default_sandbox = (
-        os.environ.get("CODEX_SANDBOX")
-        or config_get(config, "codex_sandbox")
-        or "workspace-write"
-    )
-    default_approval = (
-        os.environ.get("CODEX_APPROVAL_POLICY")
-        or config_get(config, "codex_approval_policy")
-        or "never"
-    )
+    default_cwd = config_get(config, "codex_workspace")
+    default_sandbox = config_get(config, "codex_sandbox") or "workspace-write"
+    default_approval = config_get(config, "codex_approval_policy") or "never"
 
     bot = TelegramClient(token)
     store = RouteStore(db_path)

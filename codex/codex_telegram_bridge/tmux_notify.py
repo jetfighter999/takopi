@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from typing import Optional
 
@@ -22,13 +21,13 @@ def main() -> None:
     ap.add_argument(
         "--db",
         type=str,
-        default=os.environ.get("BRIDGE_DB") or config_get(config, "bridge_db") or "./bridge_routes.sqlite3",
+        default=config_get(config, "bridge_db") or "./bridge_routes.sqlite3",
     )
     ap.add_argument("--reply-to", type=int, default=None, help="Optional Telegram message_id to reply to")
     ap.add_argument("--text", type=str, default=None, help="Message text. If omitted, read stdin.")
     args = ap.parse_args()
 
-    token = os.environ.get("TELEGRAM_BOT_TOKEN") or config_get(config, "bot_token") or ""
+    token = config_get(config, "bot_token") or ""
     bot = TelegramClient(token)
     store = RouteStore(args.db)
 
