@@ -102,6 +102,8 @@ def test_render_event_cli_all_formats_golden() -> None:
         last_turn, lines = render_event_cli(evt, last_turn)
         out.extend(lines)
 
+    print("\n".join(out))
+
     expected = ALL_FORMATS_GOLDEN_PATH.read_text(encoding="utf-8").rstrip("\n")
     assert "\n".join(out) == expected
 
