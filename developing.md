@@ -15,6 +15,14 @@ uv run takopi --help
 # Or install locally from the repo to test outside the repo
 uv tool install .
 takopi --help
+
+# Run tests, linting, type checking
+uv run pytest
+uv run ruff check src tests
+uv run ty check .
+
+# Or all at once
+make check
 ```
 
 ## Module Responsibilities
@@ -36,8 +44,8 @@ The orchestrator module containing:
 
 **Key patterns:**
 - Per-session locks prevent concurrent resumes to the same `session_id`
-- `asyncio.Semaphore` limits overall concurrency (default: 16)
-- `asyncio.TaskGroup` manages per-message tasks
+- Worker pool with `asyncio.Queue` limits concurrency (default: 16 workers)
+- `asyncio.TaskGroup` manages worker tasks
 - Progress edits are throttled to ~2s intervals
 - Subprocess stderr is drained to a bounded deque for error reporting
 - `poll_updates()` uses Telegram `getUpdates` long-polling with a single server-side updates
@@ -79,7 +87,7 @@ Transforms Codex JSONL events into human-readable text:
 ### `config.py` — Configuration Loading
 
 ```python
-def load_telegram_config(path=None) -> tuple[dict, Path]:
+def load_telegram_config() -> tuple[dict, Path]:
     # Loads ./.codex/takopi.toml, then ~/.codex/takopi.toml
 ```
 
@@ -91,6 +99,16 @@ class RedactTokenFilter:
 
 def setup_logging(*, debug: bool):
     # Configures root logger with redaction filter
+```
+
+### `onboarding.py` — Setup Validation
+
+```python
+def check_setup() -> SetupResult:
+    # Validates codex CLI on PATH and config file
+
+def render_setup_guide(result: SetupResult):
+    # Displays rich panel with setup instructions
 ```
 
 ## Data Flow
