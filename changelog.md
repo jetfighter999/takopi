@@ -1,5 +1,24 @@
 # changelog
 
+## v0.10.0 (2026-01-08)
+
+### changes
+
+- add transport registry with `--transport` overrides and a `takopi transports` command [#69](https://github.com/banteg/takopi/pull/69)
+- migrate config loading to pydantic-settings and move telegram credentials under `[transports.telegram]` [#65](https://github.com/banteg/takopi/pull/65)
+- include project aliases in the Telegram slash-command menu with validation and limits [#67](https://github.com/banteg/takopi/pull/67)
+
+### fixes
+
+- validate worktree roots instead of treating nested paths as worktrees [#63](https://github.com/banteg/takopi/pull/63)
+- harden onboarding with clearer config errors, safe backups, and refreshed command menu wording [#70](https://github.com/banteg/takopi/pull/70)
+
+### docs
+
+- add architecture and lifecycle diagrams
+- call out the default worktrees directory [#64](https://github.com/banteg/takopi/pull/64)
+- document the transport registry and onboarding changes [#69](https://github.com/banteg/takopi/pull/69)
+
 ## v0.9.0 (2026-01-07)
 
 ### projects and worktrees
