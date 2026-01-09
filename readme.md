@@ -24,13 +24,23 @@ per-project chat routing: assign different telegram chats to different projects.
 
 ## requirements
 
-`uv` for installation (`curl -LsSf https://astral.sh/uv/install.sh | sh`), python 3.14+ (`uv python install 3.14`), and at least one engine on PATH:
+`uv` for installation (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
 
-`codex` (`npm install -g @openai/codex` or `brew install codex`), `claude` (`npm install -g @anthropic-ai/claude-code`), `opencode` (`npm install -g opencode-ai@latest`), `pi` (`npm install -g @mariozechner/pi-coding-agent`).
+python 3.14+ (`uv python install 3.14`)
+
+at least one engine on PATH:
+
+`codex` (`npm install -g @openai/codex` or `brew install codex`)
+
+`claude` (`npm install -g @anthropic-ai/claude-code`)
+
+`opencode` (`npm install -g opencode-ai@latest`)
+
+`pi` (`npm install -g @mariozechner/pi-coding-agent`)
 
 ## install
 
-`uv tool install -U takopi` or try it with `uvx takopi@latest`.
+`uv tool install -U takopi`
 
 ## setup
 
